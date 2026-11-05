@@ -1,0 +1,52 @@
+import os
+from telegram import Update
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from googletrans import Translator
+
+# আপনার টোকেনটি এখানে বসানো আছে
+TOKEN = '9281320159:AAHC94SVhQjLJw4CZFJdHAZJX-EVcqxlC7o'
+
+translator = Translator()
+
+async def translate_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return
+
+    text = update.message.text
+    user_name = update.message.from_user.first_name
+
+    try:
+        # Detect language of the incoming message
+        detection = translator.detect(text)
+        src_lang = detection.lang
+
+        # যদি মেসেজটি বাংলা (bn) বা ইংরেজি (en) হয়, তবে বট কিছু করবে না
+        if src_lang in ['bn', 'en']:
+            return
+
+        # যদি অন্য কোনো ভাষা হয়, তবে তাকে বাংলায় ট্রান্সলেট করবে
+        translated = translator.translate(text, dest='bn')
+        
+        reply_text = (
+            f"🌐 **[Auto Translation]**\n"
+            f"👤 **{user_name}** ({src_lang.upper()} থেকে ট্রান্সলেট করা হলো):\n\n"
+            f"\"{translated.text}\""
+        )
+
+        # মেসেজের রিপ্লাই হিসেবে পাঠাবে
+        await update.message.reply_text(reply_text, parse_mode='Markdown')
+
+    except Exception as e:
+        print(f"Translation error: {e}")
+
+if __name__ == '__main__':
+    # Application build করা
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    # গ্রুপের সব টেক্সট মেসেজ চেক করার জন্য হ্যান্ডলার
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), translate_message))
+
+    print("Translation Bot is running...")
+    app.run_polling()
+python-telegram-bot==20.7
+googletrans==4.0.0-rc1
